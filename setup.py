@@ -1,5 +1,5 @@
 """
-Setup script for ORT tools.
+Setup script for Kaiju.
 """
 
 from setuptools import find_packages, setup
