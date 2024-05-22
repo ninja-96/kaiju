@@ -29,7 +29,7 @@ class ImageItem(BaseItem):
 from kaiju.handler import BaseHandler
 
 class ModelHandler(BaseHandler):
-    def __init__(self, device) -> None:
+    def __init__(self, device: str) -> None:
         super().__init__()
         self._model = torchvision.models.resnet18(weights='DEFAULT').eval().to(device)
         self._device = device
