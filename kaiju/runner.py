@@ -18,10 +18,22 @@ class Runner:
     _pool = ThreadPoolExecutor(1)
 
     def __init__(self, handler: BaseHandler) -> None:
-        super().__init__()
+        if not isinstance(handler, BaseHandler):
+            raise TypeError(
+                '\'handler\' must be inherited from the \'BaseHandler\' class'
+            )
+
         self._handler = handler
 
     def n_workers(self, n_workers: int) -> Runner:
+        if not isinstance(n_workers, int):
+            raise TypeError('\'n_workers\' must be int')
+
+        if n_workers <= 0:
+            raise RuntimeError(
+                '\'n_workers\' must be >= 1'
+            )
+
         self._pool = ThreadPoolExecutor(n_workers)
         return self
 
@@ -29,7 +41,7 @@ class Runner:
         self._critical_section = True
         return self
 
-    def __call__(self, data: BaseItem) -> None:
+    def __call__(self, data: BaseItem) -> BaseItem:
         if self._critical_section:
             with self._rlock:
                 return self._handler.forward(data)
