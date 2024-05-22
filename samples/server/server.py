@@ -19,7 +19,6 @@ class ImageItem(BaseItem):
 class ModelHandler(BaseHandler):
     def __init__(self, device) -> None:
         super().__init__()
-        torch.set_num_threads(1)
         self._model = torchvision.models.resnet18(weights='DEFAULT').eval().to(device)
         self._device = device
 

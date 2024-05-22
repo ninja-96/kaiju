@@ -1,7 +1,6 @@
 # Models 
 main*
 crap
-tests
 *.onnx
 *.pt
 *.torchscript.pt
