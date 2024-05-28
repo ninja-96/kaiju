@@ -2,7 +2,7 @@ import asyncio
 from typing import List
 
 from kaiju.item import BaseItem
-from kaiju.runner import Runner
+from kaiju.runner import Runner, AsyncRunner
 
 
 __all__ = [
@@ -17,7 +17,7 @@ class Pipeline:
                 '\'runners\' must be list of \'Runner\'s'
             )
 
-        if not all(isinstance(r, Runner) for r in runners):
+        if not all(isinstance(r, (Runner, AsyncRunner)) for r in runners):
             raise TypeError(
                 'all \'runners\' must be list of \'Runner\'s'
             )
@@ -31,8 +31,12 @@ class Pipeline:
             )
         loop = asyncio.get_event_loop()
         for runner in self._runners:
-            item = await loop.run_in_executor(
-                runner.pool, runner, item
-            )
+            if isinstance(runner, Runner):
+                item = await loop.run_in_executor(
+                    runner.pool, runner, item
+                )
+
+            if isinstance(runner, AsyncRunner):
+                item = await runner(item)
 
         return item
