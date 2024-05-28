@@ -1,10 +1,11 @@
+import asyncio
 from typing import Any
 
 import pytest
 
 from kaiju.runner import Runner
 from kaiju.item import BaseItem
-from kaiju.handler import BaseHandler
+from kaiju.handler import BaseHandler, AsyncBaseHandler
 
 
 class TestItem(BaseItem):
@@ -18,12 +19,18 @@ class TestHandler(BaseHandler):
         return data
 
 
+class AsyncTestHandler(AsyncBaseHandler):
+    async def forward(self, data: TestItem) -> TestItem:
+        await asyncio.sleep(1)  # write file simulation
+        return data
+
+
 @pytest.mark.parametrize('critical', [True, False])
 @pytest.mark.parametrize('n_workers', [1, 2, 4])
 def test_correct_runner(critical: bool, n_workers: int):
     runner = Runner(
         TestHandler()
-    ).n_workers(n_workers)
+    ).n_workers(n_workers).critical_section(critical)
 
     if critical:
         runner = runner.critical_section()
@@ -53,3 +60,15 @@ def test_low_n_workers(n_workers: Any):
         Runner(
             TestHandler()
         ).n_workers(n_workers)
+
+
+def test_wrong_runner_handler_types():
+    with pytest.raises(TypeError):
+        Runner(
+            AsyncTestHandler()
+        )
+
+    with pytest.raises(TypeError):
+        AsyncTestHandler(
+            TestHandler()
+        )
