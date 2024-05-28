@@ -3,9 +3,9 @@ import asyncio
 import pytest
 
 from kaiju.pipeline import Pipeline
-from kaiju.runner import Runner
+from kaiju.runner import Runner, AsyncRunner
 from kaiju.item import BaseItem
-from kaiju.handler import BaseHandler
+from kaiju.handler import BaseHandler, AsyncBaseHandler
 
 
 class TestItemWrong:
@@ -24,10 +24,17 @@ class TestHandler(BaseHandler):
         return data
 
 
+class AsyncTestHandler(AsyncBaseHandler):
+    async def forward(self, data: TestItem) -> TestItem:
+        await asyncio.sleep(1)  # write file simulation
+        return data
+
+
 def test_correct_pipeline():
     pipeline = Pipeline(
         [
-            Runner(TestHandler()).n_workers(2)
+            Runner(TestHandler()).n_workers(2),
+            AsyncRunner(AsyncTestHandler())
         ]
     )
 
