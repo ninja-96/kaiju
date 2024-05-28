@@ -1,19 +1,23 @@
 from __future__ import annotations
 
-from threading import RLock
+import asyncio
+from asyncio import Lock as AsyncLock
+
+from threading import Lock as ThreadLock
 from concurrent.futures import ThreadPoolExecutor
 
 from kaiju.item import BaseItem
-from kaiju.handler import BaseHandler
+from kaiju.handler import BaseHandler, AsyncBaseHandler
 
 
 __all__ = [
-    'Runner'
+    'Runner',
+    'AsyncRunner'
 ]
 
 
 class Runner:
-    _rlock = RLock()
+    _lock = ThreadLock()
     _critical_section = False
     _pool = ThreadPoolExecutor(1)
 
@@ -37,13 +41,13 @@ class Runner:
         self._pool = ThreadPoolExecutor(n_workers)
         return self
 
-    def critical_section(self) -> Runner:
-        self._critical_section = True
+    def critical_section(self, critical: bool = True) -> Runner:
+        self._critical_section = critical
         return self
 
     def __call__(self, data: BaseItem) -> BaseItem:
         if self._critical_section:
-            with self._rlock:
+            with self._lock:
                 return self._handler.forward(data)
 
         return self._handler.forward(data)
@@ -51,3 +55,31 @@ class Runner:
     @property
     def pool(self) -> ThreadPoolExecutor:
         return self._pool
+
+
+class AsyncRunner:
+    _lock = AsyncLock()
+    _critical_section = False
+
+    def __init__(self, handler: AsyncBaseHandler) -> None:
+        if not isinstance(handler, AsyncBaseHandler):
+            raise TypeError(
+                '\'handler\' must be inherited from the \'AsyncBaseHandler\' class'
+            )
+
+        self._handler = handler
+
+    def critical_section(self, critical: bool = True) -> Runner:
+        self._critical_section = critical
+        return self
+
+    async def __call__(self, data: BaseItem) -> BaseItem:
+        if self._critical_section:
+            async with self._lock:
+                return await self._handler.forward(data)
+
+        return await self._handler.forward(data)
+
+    @property
+    def pool(self) -> None:
+        return None
