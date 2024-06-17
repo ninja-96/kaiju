@@ -2,7 +2,8 @@ from typing import Any
 
 import pytest
 
-from kaiju.runner import Runner
+from kaiju.runner import AdvancedRunner
+from kaiju.runner.advanced_runner import advanced_runner_call
 from kaiju.item import BaseItem
 from kaiju.handler import BaseHandler
 
@@ -21,9 +22,9 @@ class TestHandler(BaseHandler):
 @pytest.mark.parametrize('critical', [True, False])
 @pytest.mark.parametrize('n_workers', [1, 2, 4])
 def test_correct_runner(critical: bool, n_workers: int):
-    runner = Runner(
-        TestHandler()
-    ).n_workers(n_workers).critical_section(critical)
+    runner = AdvancedRunner(
+        TestHandler
+    ).n_workers(n_workers).critical_section(critical).start()
 
     if critical:
         runner = runner.critical_section()
@@ -32,7 +33,9 @@ def test_correct_runner(critical: bool, n_workers: int):
     assert runner._critical_section == critical
 
     item = TestItem()
-    res_item = runner.run(item)
+    res_item = advanced_runner_call(
+        runner.queue, item
+    )
 
     assert isinstance(res_item, TestItem)
     assert res_item.a == 42.5
@@ -42,14 +45,14 @@ def test_correct_runner(critical: bool, n_workers: int):
 @pytest.mark.parametrize('n_workers', [1.3, None, '4', '4.2'])
 def test_wrong_n_workers(n_workers: Any):
     with pytest.raises(TypeError):
-        Runner(
-            TestHandler()
-        ).n_workers(n_workers)
+        AdvancedRunner(
+            TestHandler
+        ).n_workers(n_workers).start()
 
 
 @pytest.mark.parametrize('n_workers', [-1, 0])
 def test_low_n_workers(n_workers: Any):
     with pytest.raises(RuntimeError):
-        Runner(
-            TestHandler()
-        ).n_workers(n_workers)
+        AdvancedRunner(
+            TestHandler
+        ).n_workers(n_workers).start()

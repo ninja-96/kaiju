@@ -1,22 +1,20 @@
 from __future__ import annotations
 
-import asyncio
-from asyncio import Lock as AsyncLock
-
+from queue import Queue
 from threading import Lock as ThreadLock
 from concurrent.futures import ThreadPoolExecutor
 
+from kaiju.runner import BaseRunner
 from kaiju.item import BaseItem
-from kaiju.handler import BaseHandler, AsyncBaseHandler
+from kaiju.handler import BaseHandler
 
 
 __all__ = [
-    'Runner',
-    'AsyncRunner'
+    'Runner'
 ]
 
 
-class Runner:
+class Runner(BaseRunner):
     _lock = ThreadLock()
     _critical_section = False
     _pool = ThreadPoolExecutor(1)
@@ -28,6 +26,12 @@ class Runner:
             )
 
         self._handler = handler
+
+    def start(self) -> Runner:
+        return self
+
+    def stop(self) -> Runner:
+        return self
 
     def n_workers(self, n_workers: int) -> Runner:
         if not isinstance(n_workers, int):
@@ -45,41 +49,20 @@ class Runner:
         self._critical_section = critical
         return self
 
-    def __call__(self, data: BaseItem) -> BaseItem:
+    def run(self, data: BaseItem) -> BaseItem:
         if self._critical_section:
             with self._lock:
                 return self._handler.forward(data)
 
         return self._handler.forward(data)
 
+    async def async_run(self, data: BaseItem) -> BaseItem:
+        raise NotImplementedError()
+
+    @property
+    def queue(self) -> Queue:
+        raise NotImplementedError()
+
     @property
     def pool(self) -> ThreadPoolExecutor:
         return self._pool
-
-
-class AsyncRunner:
-    _lock = AsyncLock()
-    _critical_section = False
-
-    def __init__(self, handler: AsyncBaseHandler) -> None:
-        if not isinstance(handler, AsyncBaseHandler):
-            raise TypeError(
-                '\'handler\' must be inherited from the \'AsyncBaseHandler\' class'
-            )
-
-        self._handler = handler
-
-    def critical_section(self, critical: bool = True) -> Runner:
-        self._critical_section = critical
-        return self
-
-    async def __call__(self, data: BaseItem) -> BaseItem:
-        if self._critical_section:
-            async with self._lock:
-                return await self._handler.forward(data)
-
-        return await self._handler.forward(data)
-
-    @property
-    def pool(self) -> None:
-        return None

@@ -1,5 +1,6 @@
 import pickle
 import tempfile
+import multiprocessing as mp
 
 import uvicorn
 
@@ -12,7 +13,7 @@ from fastapi import FastAPI
 from kaiju.item import BaseItem
 from kaiju.handler import BaseHandler, AsyncBaseHandler
 from kaiju.pipeline import Pipeline
-from kaiju.runner import Runner, AsyncRunner
+from kaiju.runner import Runner, AsyncRunner, AdvancedRunner
 
 
 class ImageItem(BaseItem):
@@ -27,8 +28,9 @@ class ModelHandler(BaseHandler):
         self._device = device
 
     def forward(self, data: ImageItem) -> ImageItem:
-        data.predict = self._model(data.image.to(self._device)).cpu()
-        return data
+        with torch.inference_mode():
+            data.predict = self._model(data.image.to(self._device)).cpu()
+            return data
 
 
 class AsyncTensorSaverHandler(AsyncBaseHandler):
@@ -44,11 +46,12 @@ class AsyncTensorSaverHandler(AsyncBaseHandler):
 
 
 if __name__ == '__main__':
+    mp.set_start_method('spawn')
     app = FastAPI()
     pipeline = Pipeline(
         [
             Runner(ModelHandler('cpu')).n_workers(4),
-            Runner(ModelHandler('cuda')).n_workers(2).critical_section(),
+            AdvancedRunner(ModelHandler, device='cuda').n_workers(2),
             AsyncRunner(AsyncTensorSaverHandler())
         ]
     )
