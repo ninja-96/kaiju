@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from queue import Queue
 from threading import Lock as ThreadLock
 from concurrent.futures import ThreadPoolExecutor
 
@@ -55,13 +54,6 @@ class Runner(BaseRunner):
                 return self._handler.forward(data)
 
         return self._handler.forward(data)
-
-    async def async_run(self, data: BaseItem) -> BaseItem:
-        raise NotImplementedError()
-
-    @property
-    def queue(self) -> Queue:
-        raise NotImplementedError()
 
     @property
     def pool(self) -> ThreadPoolExecutor:
