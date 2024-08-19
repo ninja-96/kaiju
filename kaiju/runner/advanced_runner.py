@@ -142,9 +142,6 @@ class AdvancedRunner(BaseRunner):
             'function in \'loop.run_in_executor(...)\''
         )
 
-    async def async_run(self, data: BaseItem) -> BaseItem:
-        raise NotImplementedError()
-
     @property
     def pool(self) -> ProcessPoolExecutor:
         return self._pool

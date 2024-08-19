@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from asyncio import Lock as AsyncLock
-from queue import Queue
-from concurrent.futures import Executor
 
 from kaiju.runner import BaseRunner
 from kaiju.item import BaseItem
@@ -32,15 +30,9 @@ class AsyncRunner(BaseRunner):
     def stop(self) -> AsyncRunner:
         return self
 
-    def n_workers(self, n_workers: int) -> AsyncRunner:
-        pass
-
     def critical_section(self, critical: bool = True) -> AsyncRunner:
         self._critical_section = critical
         return self
-
-    def run(self, data: BaseItem) -> BaseItem:
-        raise NotImplementedError()
 
     async def async_run(self, data: BaseItem) -> BaseItem:
         if self._critical_section:
@@ -48,11 +40,3 @@ class AsyncRunner(BaseRunner):
                 return await self._handler.forward(data)
 
         return await self._handler.forward(data)
-
-    @property
-    def queue(self) -> Queue:
-        raise NotImplementedError()
-
-    @property
-    def pool(self) -> Executor:
-        raise NotImplementedError()
