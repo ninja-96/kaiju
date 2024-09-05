@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 from typing import List
 
@@ -7,18 +9,36 @@ from kaiju.runner.advanced_runner import advanced_runner_call
 
 
 __all__ = [
+    '_infinity_run',
     'Pipeline'
 ]
 
 
-class Pipeline:
-    def __init__(self, runners: List[Runner]) -> None:
-        if not isinstance(runners, List):
-            raise TypeError(
-                '\'runners\' must be list of \'Runner\'s'
+async def _infinity_run(
+    pipeline: Pipeline,
+    item: BaseItem,
+    batch_size: int
+) -> None:
+    while True:
+        futures = [
+            asyncio.create_task(
+                pipeline(item.__class__())
             )
+            for _ in range(batch_size)
+        ]
 
-        if not all(isinstance(r, (Runner, AsyncRunner, AdvancedRunner)) for r in runners):
+        await asyncio.gather(*futures)
+
+
+class Pipeline:
+    def __init__(self, *runners: List[Runner]) -> None:
+        if len(runners) == 1 and isinstance(runners[0], List):
+            runners = runners[0]
+
+        if not all(
+            isinstance(r, (Runner, AsyncRunner, AdvancedRunner))
+            for r in runners
+        ):
             raise TypeError(
                 'all \'runners\' must be list of \'Runner\'s'
             )
@@ -32,6 +52,7 @@ class Pipeline:
             raise TypeError(
                 '\'item\' must be inherited from the \'BaseItem\' class'
             )
+
         loop = asyncio.get_event_loop()
         for runner in self._runners:
             if isinstance(runner, Runner):
@@ -51,6 +72,9 @@ class Pipeline:
                 )
 
         return item
+
+    def start(self, item: BaseItem, batch_size: int = 4) -> None:
+        asyncio.run(_infinity_run(self, item, batch_size))
 
     def __del__(self) -> None:
         for runner in self._runners:

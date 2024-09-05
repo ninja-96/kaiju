@@ -13,14 +13,16 @@ pip3 install git+https://github.com/ninja-96/kaiju
 
 ## Getting Started
 
+### Server usage
+
 1) Write your own class for pass data throught `Pipeline`
 
 ```python
 from kaiju.item import BaseItem
 
 class ImageItem(BaseItem):
-    image: torch.Tensor = torch.tensor([])
-    predict: torch.Tensor = torch.tensor([])
+    image: torch.Tensor = Field(default_factory=torch.Tensor)
+    predict: torch.Tensor = Field(default_factory=torch.Tensor)
 ```
 
 2) Write your own class for handler
@@ -35,8 +37,9 @@ class ModelHandler(BaseHandler):
         self._device = device
 
     def forward(self, data: ImageItem) -> ImageItem:
-        data.predict = self._model(data.image.to(self._device)).cpu()
-        return data
+        with torch.inference_mode():
+            data.predict = self._model(data.image.to(self._device)).cpu()
+            return data
 ```
 
 3) Create `Pipeline` instance
@@ -45,10 +48,82 @@ class ModelHandler(BaseHandler):
 from kaiju.runner import Runner
 
 pipeline = Pipeline(
-    [
-        Runner(ModelHandler('cpu'))
-    ]
+    Runner(ModelHandler('cpu'))
 )
+```
+
+4) Call `Pipeline` from async function
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+...
+
+@app.post('/predict')
+async def post_predict(data: Any) -> Any:
+    # getting and prepare data from request
+
+    item = ImageItem()
+    result = await pipeline(item)
+
+    # postprocess pipeline result and return response
+
+```
+
+
+### Programm usage
+
+1) Write your own class for pass data throught `Pipeline`
+
+```python
+from kaiju.item import BaseItem
+
+class ImageItem(BaseItem):
+    image: torch.Tensor = Field(default_factory=torch.Tensor)
+    predict: torch.Tensor = Field(default_factory=torch.Tensor)
+```
+
+2) Write your own class for handlers
+
+```python
+class DummyReader(BaseHandler):
+    def forward(self, data: ImageItem) -> ImageItem:
+        data.image = torch.rand(16, 3, 224, 224)
+        return data
+
+
+class R18Model(BaseHandler):
+    def __init__(self, device) -> None:
+        super().__init__()
+        with torch.inference_mode():
+            self._model = torchvision.models.resnet18(weights='DEFAULT').eval().to(device)
+        self._device = device
+
+    def forward(self, data: ImageItem) -> ImageItem:
+        with torch.inference_mode():
+            data.predict = self._model(data.image.to(self._device)).cpu()
+            return data
+```
+
+
+3) Create `Pipeline` instance
+
+```python
+from kaiju.runner import Runner
+
+if __name__ == '__main__':
+    pipeline = Pipeline(
+        Runner(Reader()).n_workers(2),
+        Runner(R18Model('cuda')).n_workers(4).critical_section()
+    )
+```
+
+4) Start `Pipeline`
+```python
+pipeline.start(ImageItem(), batch_size=32)
+
+# batch size - number of coroutines that will be created for execution
 ```
 
 ### Note

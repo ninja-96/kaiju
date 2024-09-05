@@ -9,7 +9,7 @@ import kaiju
 setup(
     name='kaiju',
     version=kaiju.__version__,
-    description='Async AI model executor for async server',
+    description='AI model executor for async servers and programms',
     author='Oleg Kachalov',
     packages=find_packages(),
     python_requires='>=3.8',
