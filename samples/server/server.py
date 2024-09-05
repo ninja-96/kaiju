@@ -49,11 +49,9 @@ if __name__ == '__main__':
     mp.set_start_method('spawn')
     app = FastAPI()
     pipeline = Pipeline(
-        [
-            Runner(ModelHandler('cpu')).n_workers(4),
-            AdvancedRunner(ModelHandler, device='cuda').n_workers(2),
-            AsyncRunner(AsyncTensorSaverHandler())
-        ]
+        Runner(ModelHandler('cpu')).n_workers(4),
+        AdvancedRunner(ModelHandler, device='cuda').n_workers(2),
+        AsyncRunner(AsyncTensorSaverHandler())
     )
 
     @app.post('/pipeline')
