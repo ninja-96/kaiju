@@ -1,6 +1,6 @@
 # Kaiju
 
-Asynchronous runner for AI models
+AI model executor for async servers and programms
 
 ## Installation
 
