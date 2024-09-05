@@ -54,6 +54,7 @@ pipeline = Pipeline(
 
 4) Call `Pipeline` from async function
 ```python
+from typing import Any
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -68,7 +69,6 @@ async def post_predict(data: Any) -> Any:
     result = await pipeline(item)
 
     # postprocess pipeline result and return response
-
 ```
 
 
@@ -96,8 +96,7 @@ class DummyReader(BaseHandler):
 class R18Model(BaseHandler):
     def __init__(self, device) -> None:
         super().__init__()
-        with torch.inference_mode():
-            self._model = torchvision.models.resnet18(weights='DEFAULT').eval().to(device)
+        self._model = torchvision.models.resnet18(weights='DEFAULT').eval().to(device)
         self._device = device
 
     def forward(self, data: ImageItem) -> ImageItem:
@@ -114,7 +113,7 @@ from kaiju.runner import Runner
 
 if __name__ == '__main__':
     pipeline = Pipeline(
-        Runner(Reader()).n_workers(2),
+        Runner(DummyReader()).n_workers(2),
         Runner(R18Model('cuda')).n_workers(4).critical_section()
     )
 ```
